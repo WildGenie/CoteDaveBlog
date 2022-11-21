@@ -28,12 +28,10 @@ from rulefit import RuleFit
 from xgboost import XGBRegressor, XGBClassifier
 
 def get_numerical_cols(dataframe):
-        colnames_numerical = dataframe.select_dtypes(include=[np.number]).columns.tolist()
-        return colnames_numerical
+        return dataframe.select_dtypes(include=[np.number]).columns.tolist()
     
 def get_categorical_cols(dataframe):
-    colnames_categorical = dataframe.select_dtypes(include='object').columns.tolist()
-    return colnames_categorical
+        return dataframe.select_dtypes(include='object').columns.tolist()
 
 def duplicate_columns(dataframe):
     groups = dataframe.columns.to_series().groupby(dataframe.dtypes).groups
@@ -55,7 +53,7 @@ def duplicate_columns(dataframe):
     return dups
 
 def outlier_std(s, nstd=3.0, return_thresholds=False):
-    """
+        """
     Return a boolean mask of outliers for a series
     using standard deviation, works column-wise.
     param nstd:
@@ -67,16 +65,16 @@ def outlier_std(s, nstd=3.0, return_thresholds=False):
         False returns the masked array 
     :type return_thresholds: ``bool``
     """
-    data_mean, data_std = s.mean(), s.std()
-    cut_off = data_std * nstd
-    lower, upper = data_mean - cut_off, data_mean + cut_off
-    if return_thresholds:
-        return lower, upper
-    else:
-        return [True if x < lower or x > upper else False for x in s]
+        data_mean, data_std = s.mean(), s.std()
+        cut_off = data_std * nstd
+        lower, upper = data_mean - cut_off, data_mean + cut_off
+        if return_thresholds:
+                return lower, upper
+        else:
+                return [x < lower or x > upper for x in s]
 
 def outlier_iqr(s, k=1.5, return_thresholds=False):
-    """
+        """
     Return a boolean mask of outliers for a series
     using interquartile range, works column-wise.
     param k:
@@ -87,16 +85,16 @@ def outlier_iqr(s, k=1.5, return_thresholds=False):
         False returns the masked array 
     :type return_thresholds: ``bool``
     """
-    # calculate interquartile range
-    q25, q75 = np.percentile(s, 25), np.percentile(s, 75)
-    iqr = q75 - q25
-    # calculate the outlier cutoff
-    cut_off = iqr * k
-    lower, upper = q25 - cut_off, q75 + cut_off
-    if return_thresholds:
-        return lower, upper
-    else: # identify outliers
-        return [True if x < lower or x > upper else False for x in s]
+        # calculate interquartile range
+        q25, q75 = np.percentile(s, 25), np.percentile(s, 75)
+        iqr = q75 - q25
+        # calculate the outlier cutoff
+        cut_off = iqr * k
+        lower, upper = q25 - cut_off, q75 + cut_off
+        if return_thresholds:
+                return lower, upper
+        else: # identify outliers
+                return [x < lower or x > upper for x in s]
 
 def replace_nulls(dataframe):
         
@@ -134,15 +132,12 @@ def drop_constant_columns(dataframe):
 
 
 def concatenate_list_data(liste):
-    result= ''
-    i = 0
-    for element in liste:
-        if i == len(liste)-1:
-            result += str(element)
-        else:
-            result += str(element) + ' & '
-        i = i +1
-    return result
+        result= ''
+        i = 0
+        for element in liste:
+                result += str(element) if i == len(liste)-1 else f'{str(element)} & '
+                i = i +1
+        return result
 
 
 def find_nth(string, substring, n):
@@ -153,87 +148,100 @@ def find_nth(string, substring, n):
        
 def round_decimal_string(string):
  
-    position_p_list = [pos for pos, char in enumerate(string) if char == '.']
-    i = 1
-    for i in range(1, len(position_p_list)+1):   
-        next_p_position = find_nth(string, '.', i)
-        string_concat1 = string[0:next_p_position+3]
-        next_space_position = string[next_p_position+3:].find(' ')
-        if next_space_position <=2:
-            string_concat2 = string[next_p_position+4:]
-        if next_space_position == -1:
-            string_concat2 = string[next_p_position+3:next_p_position+3]
-        else:
-            string_concat2 = string[next_p_position+2+next_space_position:]
-        string = string_concat1 + string_concat2
-        string = string.replace('  ', ' ')
-    return string
+        position_p_list = [pos for pos, char in enumerate(string) if char == '.']
+        i = 1
+        for i in range(1, len(position_p_list)+1):   
+                next_p_position = find_nth(string, '.', i)
+                string_concat1 = string[:next_p_position+3]
+                next_space_position = string[next_p_position+3:].find(' ')
+                if next_space_position <=2:
+                    string_concat2 = string[next_p_position+4:]
+                if next_space_position == -1:
+                    string_concat2 = string[next_p_position+3:next_p_position+3]
+                else:
+                    string_concat2 = string[next_p_position+2+next_space_position:]
+                string = string_concat1 + string_concat2
+                string = string.replace('  ', ' ')
+        return string
 
 
 
 def rule_to_feature(dataset, text_rule = ''):
-    data = dataset.copy()
-    dataset_variable_name = 'data'
-    text_rule = text_rule.replace(' = ', ' == ')
-    position_and_list = [pos for pos, char in enumerate(text_rule) if char == '&']
-    position_h_list = [pos for pos, char in enumerate(text_rule) if char == '>']
-    position_he_list = [pos for pos, char in enumerate(text_rule) if char == '>=']
-    position_l_list = [pos for pos, char in enumerate(text_rule) if char == '<']
-    position_le_list = [pos for pos, char in enumerate(text_rule) if char == '<=']
-    position_e_list = [pos for pos, char in enumerate(text_rule) if char == '==']
-    
-    all_positions = position_and_list + position_h_list + position_he_list + position_l_list + position_le_list + position_e_list
-    all_positions = sorted(all_positions)
-    
-    #feature_list = " ".join(re.split("[^a-zA-Z, _]*", text_rule)).split() 
-    
-    
-    all_eq_positions = position_h_list + position_he_list + position_l_list + position_le_list + position_e_list
-    all_eq_positions = sorted(all_eq_positions)
+        data = dataset.copy()
+        dataset_variable_name = 'data'
+        text_rule = text_rule.replace(' = ', ' == ')
+        position_and_list = [pos for pos, char in enumerate(text_rule) if char == '&']
+        position_h_list = [pos for pos, char in enumerate(text_rule) if char == '>']
+        position_he_list = [pos for pos, char in enumerate(text_rule) if char == '>=']
+        position_l_list = [pos for pos, char in enumerate(text_rule) if char == '<']
+        position_le_list = [pos for pos, char in enumerate(text_rule) if char == '<=']
+        position_e_list = [pos for pos, char in enumerate(text_rule) if char == '==']
 
-    max_var = len(position_and_list)
-    max_eq = len(all_eq_positions)
-    var_list = []
-    
-    string_list = []
-    
-    #i = 0
-    for i in range(0, len(position_and_list)+1):
-        #print(i)
-        if i == 0 and len(position_and_list) > 0:
-            string_list.append(text_rule[0:position_and_list[i]])
-        elif i == 0 and len(position_and_list) == 0:
-            string_list.append(text_rule)
-        elif i == len(position_and_list):
-            string_list.append(text_rule[position_and_list[i-1]:])
-        else:
-            string_list.append(text_rule[position_and_list[i-1]:position_and_list[i]])
-    
-    string_list_feature = [w.replace('& ', '') for w in string_list]
-    feature_list = [w[:find_nth(w, ' ', 1)] for w in string_list_feature]
-    
-    i = 0
-    for string_var in string_list:
-        if i == 0 and len(position_and_list) > 0:
-            rule = '((' + dataset_variable_name +"['" + feature_list[i] + "']" + ' ' + text_rule[all_eq_positions[0]:position_and_list[i]] + ')' 
-        elif i == 0 and len(position_and_list) == 0:
-            rule = '((' + dataset_variable_name +"['" + feature_list[i] + "']" + ' ' + text_rule[all_eq_positions[0]:] + '))'
-        elif i == len(string_list) - 1:
-            rule = '(' + dataset_variable_name +"['" + feature_list[i] + "']" + ' ' + text_rule[all_eq_positions[i]:] + '))' 
-        else:
-            rule = '(' + dataset_variable_name +"['" + feature_list[i] + "']" + ' ' + text_rule[all_eq_positions[i]:all_eq_positions[i+1]] + ')'
-            if find_nth(rule, '&', 1) > -1:
-                rule = rule[:find_nth(rule, '&', 1)]
-                rule = rule + ')'
-                
-        var_list.append(rule) 
-        i = i +1
+        all_positions = position_and_list + position_h_list + position_he_list + position_l_list + position_le_list + position_e_list
+        all_positions = sorted(all_positions)
 
-    statement = concatenate_list_data(var_list)
-    #print(statement)
-    #print(feature_list)
-    #eval("dataset['bmi']") 
-    return np.where(eval(statement), 1, 0), statement
+        #feature_list = " ".join(re.split("[^a-zA-Z, _]*", text_rule)).split() 
+
+
+        all_eq_positions = position_h_list + position_he_list + position_l_list + position_le_list + position_e_list
+        all_eq_positions = sorted(all_eq_positions)
+
+        max_var = len(position_and_list)
+        max_eq = len(all_eq_positions)
+        var_list = []
+
+        string_list = []
+
+            #i = 0
+        for i in range(len(position_and_list)+1):
+                        #print(i)
+                if i == 0 and position_and_list:
+                        string_list.append(text_rule[:position_and_list[i]])
+                elif i == 0:
+                        string_list.append(text_rule)
+                elif i == len(position_and_list):
+                    string_list.append(text_rule[position_and_list[i-1]:])
+                else:
+                        string_list.append(text_rule[position_and_list[i-1]:position_and_list[i]])
+
+        string_list_feature = [w.replace('& ', '') for w in string_list]
+        feature_list = [w[:find_nth(w, ' ', 1)] for w in string_list_feature]
+
+        i = 0
+        for string_var in string_list:
+                if i == 0 and position_and_list:
+                        rule = (
+                            f'(({dataset_variable_name}' + "['" +
+                            feature_list[i] + "']" + ' ' +
+                            text_rule[all_eq_positions[0]:position_and_list[i]]
+                            + ')')
+                elif i == 0:
+                        rule = (f'(({dataset_variable_name}' + "['" +
+                                feature_list[i] + "']" + ' ' +
+                                text_rule[all_eq_positions[0]:] + '))')
+                elif i == len(string_list) - 1:
+                        rule = (f'({dataset_variable_name}' + "['" +
+                                feature_list[i] + "']" + ' ' +
+                                text_rule[all_eq_positions[i]:] + '))')
+                else:
+                        rule = (
+                            f'({dataset_variable_name}' + "['" +
+                            feature_list[i] + "']" + ' ' +
+                            text_rule[all_eq_positions[i]:all_eq_positions[i +
+                                                                           1]]
+                            + ')')
+                        if find_nth(rule, '&', 1) > -1:
+                            rule = rule[:find_nth(rule, '&', 1)]
+                            rule = rule + ')'
+
+                var_list.append(rule)
+                i = i +1
+
+        statement = concatenate_list_data(var_list)
+        #print(statement)
+        #print(feature_list)
+        #eval("dataset['bmi']") 
+        return np.where(eval(statement), 1, 0), statement
 
 def rules_feature_engineering(data_X,
                               data_y,
@@ -243,57 +251,68 @@ def rules_feature_engineering(data_X,
                               base_model, 
                               random_state,
                               max_rules):
-    ###### RULEFIT ENSEMBLE Model
-    model = RuleFit(tree_generator= base_model,
-                    random_state= random_state, 
-                    max_rules= max_rules)
-    
-    try:
-        model.fit(data_X.values, data_y.values, feature_names=feature_names.copy())
-    except:
-        model.fit(data_X, data_y, feature_names=feature_names.copy())
-        
-    ##### MODEL INTERPRETATION - RULES !
-    rules = model.get_rules()
-    rules = rules[rules.coef != 0].sort_values(by="support")
-    num_rules_rule=len(rules[rules.type=='rule'])
-    num_rules_linear=len(rules[rules.type=='linear'])
-    
-    rules['rule'] = rules['rule'].apply(round_decimal_string)
-    linear_rules = rules.loc[rules['type'] == 'linear']
-    rules = rules.loc[rules['type'] != 'linear']
-    rules.index = rules['rule'].str.wrap(105)
-    #rules.index = rules['rule'].str.wrap(40)
-    rules_copy = rules.copy()
-    rules = rules.sort_values(['importance'], ascending = False)
-    rules['rank'] = rules['importance'].rank(ascending=False)
-    n_rules = int(max(rules['rank']))
-    #rules = rules.loc[rules['rank'] <= 25]
-    
-    if len(rules) < n_best_rules:
-        n_best_rules = len(rules)
-    
-    rules_X = data_X.copy()
-    selected_rules = list(rules.sort_values(by = ['rank'])['rule'])[0:n_best_rules]
-    #i = 0
-    selected_rules2 = pd.DataFrame(columns=['FEATURE_NAME','RULE', 'PYTHON_CODE'])
-    for i in range(0, n_best_rules):
-        #print(i)
-        #print(list(rules.sort_values(by = ['rank'])['rule'])[i])
-        #print(list(X.columns))
-        text_rule= list(rules.sort_values(by = ['rank'])['rule'])[i]
-        text_rule_cleaned = text_rule.replace(' ', '_').replace(' ', '_').replace(' ', '_').replace('&','AND').replace('.','_')
-        text_rule_cleaned = text_rule_cleaned.replace('_<_','_LOWER_')
-        text_rule_cleaned = text_rule_cleaned.replace('_>_','_GREATER_')
-        text_rule_cleaned = text_rule_cleaned.replace('_<=_','_LOWER_EQUAL_')
-        text_rule_cleaned = text_rule_cleaned.replace('_>=_','_GREATER_EQUAL_')
-        text_rule_cleaned = text_rule_cleaned.replace('_==_','_EQUAL_')
-        rules_X['RULE_EXTRACT_' + str(i+1)], statement = rule_to_feature(dataset = data_X.copy(), text_rule = text_rule)
-        df_temp = pd.DataFrame([['RULE_EXTRACT_' + str(i+1), selected_rules[i], statement]], columns=['FEATURE_NAME','RULE', 'PYTHON_CODE'])
-        selected_rules2 = selected_rules2.append(df_temp, ignore_index = True)
-        #rules_X[text_rule_cleaned+ '_R' + str(i+1)] = rule_to_feature(dataset = data_X.copy(), text_rule = text_rule)
-       
-    return rules_X, selected_rules2
+        ###### RULEFIT ENSEMBLE Model
+        model = RuleFit(tree_generator= base_model,
+                        random_state= random_state, 
+                        max_rules= max_rules)
+
+        try:
+            model.fit(data_X.values, data_y.values, feature_names=feature_names.copy())
+        except:
+            model.fit(data_X, data_y, feature_names=feature_names.copy())
+
+        ##### MODEL INTERPRETATION - RULES !
+        rules = model.get_rules()
+        rules = rules[rules.coef != 0].sort_values(by="support")
+        num_rules_rule=len(rules[rules.type=='rule'])
+        num_rules_linear=len(rules[rules.type=='linear'])
+
+        rules['rule'] = rules['rule'].apply(round_decimal_string)
+        linear_rules = rules.loc[rules['type'] == 'linear']
+        rules = rules.loc[rules['type'] != 'linear']
+        rules.index = rules['rule'].str.wrap(105)
+        #rules.index = rules['rule'].str.wrap(40)
+        rules_copy = rules.copy()
+        rules = rules.sort_values(['importance'], ascending = False)
+        rules['rank'] = rules['importance'].rank(ascending=False)
+        n_rules = int(max(rules['rank']))
+        #rules = rules.loc[rules['rank'] <= 25]
+
+        if len(rules) < n_best_rules:
+            n_best_rules = len(rules)
+
+        rules_X = data_X.copy()
+        selected_rules = list(rules.sort_values(by = ['rank'])['rule'])[:n_best_rules]
+        #i = 0
+        selected_rules2 = pd.DataFrame(columns=['FEATURE_NAME','RULE', 'PYTHON_CODE'])
+        for i in range(n_best_rules):
+                #print(i)
+                #print(list(rules.sort_values(by = ['rank'])['rule'])[i])
+                #print(list(X.columns))
+                text_rule= list(rules.sort_values(by = ['rank'])['rule'])[i]
+                text_rule_cleaned = text_rule.replace(' ', '_').replace(' ', '_').replace(' ', '_').replace('&','AND').replace('.','_')
+                text_rule_cleaned = text_rule_cleaned.replace('_<_','_LOWER_')
+                text_rule_cleaned = text_rule_cleaned.replace('_>_','_GREATER_')
+                text_rule_cleaned = text_rule_cleaned.replace('_<=_','_LOWER_EQUAL_')
+                text_rule_cleaned = text_rule_cleaned.replace('_>=_','_GREATER_EQUAL_')
+                text_rule_cleaned = text_rule_cleaned.replace('_==_','_EQUAL_')
+                (
+                    rules_X[f'RULE_EXTRACT_{str(i + 1)}'],
+                    statement,
+                ) = rule_to_feature(
+                    dataset=data_X.copy(), text_rule=text_rule)
+                df_temp = pd.DataFrame(
+                    [[
+                        f'RULE_EXTRACT_{str(i + 1)}',
+                        selected_rules[i],
+                        statement,
+                    ]],
+                    columns=['FEATURE_NAME', 'RULE', 'PYTHON_CODE'],
+                )
+                selected_rules2 = selected_rules2.append(df_temp, ignore_index = True)
+                #rules_X[text_rule_cleaned+ '_R' + str(i+1)] = rule_to_feature(dataset = data_X.copy(), text_rule = text_rule)
+
+        return rules_X, selected_rules2
 
 from xgboost import XGBRegressor
 from sklearn.preprocessing import MinMaxScaler
@@ -301,133 +320,123 @@ import shap
 
 def feature_selection(X_train, y_train):
     
-    i = 0
-    for col in y_train.columns:
-        xgb_model = XGBRegressor(n_estimators=200, 
-                                learning_rate=0.03, 
-                                subsample=0.61,  
-                                max_depth=9, random_state=0).fit(X_train, y_train[col])
-        features_train = pd.DataFrame(list(X_train.columns), columns = ['FEATURE'])
-        features_train['index'] = features_train.index
-        df_allfeatures = pd.DataFrame(X_train.columns, columns = ['FEATURE'])
-        df_allfeatures.index = df_allfeatures['FEATURE']
-        df_fscore_xgb_list = pd.DataFrame(xgb_model.get_booster().get_score(importance_type= 'gain'), index=[0]).T.sort_values(by = (0), ascending = False)
-        df_fscore_xgb_list.columns = ['FSCORE_GAIN_XGB']
-        df_fscore_xgb_list = pd.merge(df_allfeatures, df_fscore_xgb_list, how = 'left', left_index = True, right_index = True)
-        df_fscore_xgb_list = df_fscore_xgb_list.fillna(0)
-        df_fscore_xgb_list = df_fscore_xgb_list.sort_values(by = (['FSCORE_GAIN_XGB']), ascending = False)
-        df_fscore_xgb_list['Y_TRUE'] = col
-        shap_explainer = shap.TreeExplainer(xgb_model)
-        
-        if i == 0:
-            df_fscore_xgb = df_fscore_xgb_list.copy()
-        else:
-            df_fscore_xgb = df_fscore_xgb.append(df_fscore_xgb_list, ignore_index = True)
-            
-        if i == 0:
-            global_shap_values_train = pd.DataFrame(shap_explainer.shap_values(X_train))
-            global_shap_values_train = pd.DataFrame(global_shap_values_train.abs().mean(axis=0))
-            global_shap_values_train.columns = ['SHAP_MEAN']
-            global_shap_values_train['index'] = global_shap_values_train.index.astype(int)
-            global_shap_values_train = global_shap_values_train.merge(features_train, left_on='index', right_on='index')
-            del global_shap_values_train['index']
-            global_shap_values_train['Y_VALUE'] = col
-      
-            global_shap_values_train = global_shap_values_train.sort_values(by=['SHAP_MEAN'], ascending=False)
-            global_shap_values_train.index = global_shap_values_train['FEATURE']
-            df_shap_mean = global_shap_values_train.copy()
-            
-        else:
-            global_shap_values_train = pd.DataFrame(shap_explainer.shap_values(X_train))
-            global_shap_values_train = pd.DataFrame(global_shap_values_train.abs().mean(axis=0))
-            global_shap_values_train.columns = ['SHAP_MEAN']
-            global_shap_values_train['index'] = global_shap_values_train.index.astype(int)
-            global_shap_values_train = global_shap_values_train.merge(features_train, left_on='index', right_on='index')
-            del global_shap_values_train['index']
-            global_shap_values_train['Y_VALUE'] = col
-      
-            global_shap_values_train = global_shap_values_train.sort_values(by=['SHAP_MEAN'], ascending=False)
-            global_shap_values_train.index = global_shap_values_train['FEATURE']
-            df_shap_mean = df_shap_mean.append(global_shap_values_train, ignore_index = True)
-        i = i+1
-        #print(col)
-           
-    df_shap_mean['SHAP_MEAN_ABS'] = abs(df_shap_mean['SHAP_MEAN'])
-    df_fscore_xgb['FSCORE_GAIN_XGB_ABS'] = abs(df_fscore_xgb['FSCORE_GAIN_XGB'])
-    df_shap_mean.index.name = 'index'
-    df_shap_mean2 = df_shap_mean[['SHAP_MEAN_ABS','FEATURE']].groupby('FEATURE').mean().reset_index()
-    df_fscore_xgb.index.name = 'index'
-    df_fscore_xgb2 = df_fscore_xgb[['FSCORE_GAIN_XGB_ABS','FEATURE']].groupby('FEATURE').mean().reset_index()
-    
-    df_shap_mean = pd.DataFrame(df_shap_mean2.sort_values(by = ['SHAP_MEAN_ABS'], ascending = False))
-    df_shap_mean = df_shap_mean.loc[df_shap_mean['SHAP_MEAN_ABS'] >= df_shap_mean['SHAP_MEAN_ABS'].quantile(0.45)]
-    df_fscore_xgb = pd.DataFrame(df_fscore_xgb2.sort_values(by = ['FSCORE_GAIN_XGB_ABS'], ascending = False))
-    df_fscore_xgb = df_fscore_xgb.loc[df_fscore_xgb['FSCORE_GAIN_XGB_ABS'] >= df_fscore_xgb['FSCORE_GAIN_XGB_ABS'].quantile(0.45)]
-    
-    
-    #Multicolinearity
-    corr = pd.DataFrame(spearmanr(X_train).correlation).fillna(0)
-    corr_linkage = hierarchy.ward(corr)
-    cluster_ids = hierarchy.fcluster(corr_linkage, 1, criterion='distance')
-    cluster_id_to_feature_ids = defaultdict(list)
-    for idx, cluster_id in enumerate(cluster_ids):
-        cluster_id_to_feature_ids[cluster_id].append(idx)
-    selected_features = [v[0] for v in cluster_id_to_feature_ids.values()]
-    
-    #selected_features = X_train.columns.to_list()
-    for i in range(0, len(y_train.columns)):
-        #print(str(i+1) + ' / ' + str(len(y_train.columns)) + '...')
-        model = Lasso(alpha=0.001, max_iter=25000)
-        model.fit(X_train.iloc[:, selected_features], y_train.iloc[:, i])
-        
-        result = permutation_importance(model, X_train.iloc[:, selected_features], y_train.iloc[:, i], n_repeats=8,
-                                        random_state=0)
-        perm_sorted_idx = result.importances_mean.argsort()
-        perm_df = pd.DataFrame(result.importances[perm_sorted_idx])
-        perm_df['FEATURE'] = X_train.iloc[:, selected_features].iloc[:, perm_sorted_idx].columns.values
-        
-        if i == 0:
-            perm_df_score = perm_df[['FEATURE']]
-            perm_df_score['PERM_SCORE'] = perm_df.iloc[:, 2]
-        else:
-            perm_df_score2 = perm_df[['FEATURE']]
-            perm_df_score2['PERM_SCORE'] = perm_df.iloc[:, 2]
-            
-            perm_df_score = pd.concat([perm_df_score, perm_df_score2], axis = 0, ignore_index = True)
-    
-    perm_df_score = pd.DataFrame(perm_df_score.groupby(['FEATURE']).mean().reset_index() ).sort_values(by = ['PERM_SCORE'], ascending = False)
-    perm_df_score = perm_df_score.loc[perm_df_score['PERM_SCORE'] >= perm_df_score['PERM_SCORE'].quantile(0.45)]
-    
-    all_features = pd.DataFrame(X_train.columns)
-    all_features.columns = ['FEATURE']
-    
-    all_features = pd.merge(all_features, perm_df_score, how = 'left', left_on = ['FEATURE'], right_on = ['FEATURE'])
-    all_features = pd.merge(all_features, df_shap_mean, how = 'left', left_on = ['FEATURE'], right_on = ['FEATURE'])
-    all_features = pd.merge(all_features, df_fscore_xgb, how = 'left', left_on = ['FEATURE'], right_on = ['FEATURE'])
+        i = 0
+        for col in y_train.columns:
+                xgb_model = XGBRegressor(n_estimators=200, 
+                                        learning_rate=0.03, 
+                                        subsample=0.61,  
+                                        max_depth=9, random_state=0).fit(X_train, y_train[col])
+                features_train = pd.DataFrame(list(X_train.columns), columns = ['FEATURE'])
+                features_train['index'] = features_train.index
+                df_allfeatures = pd.DataFrame(X_train.columns, columns = ['FEATURE'])
+                df_allfeatures.index = df_allfeatures['FEATURE']
+                df_fscore_xgb_list = pd.DataFrame(xgb_model.get_booster().get_score(importance_type= 'gain'), index=[0]).T.sort_values(by = (0), ascending = False)
+                df_fscore_xgb_list.columns = ['FSCORE_GAIN_XGB']
+                df_fscore_xgb_list = pd.merge(df_allfeatures, df_fscore_xgb_list, how = 'left', left_index = True, right_index = True)
+                df_fscore_xgb_list = df_fscore_xgb_list.fillna(0)
+                df_fscore_xgb_list = df_fscore_xgb_list.sort_values(by = (['FSCORE_GAIN_XGB']), ascending = False)
+                df_fscore_xgb_list['Y_TRUE'] = col
+                shap_explainer = shap.TreeExplainer(xgb_model)
 
-    scaler = MinMaxScaler(feature_range=(0,100))
-    all_features_scaled = pd.DataFrame(scaler.fit_transform(all_features.iloc[:, 1:]), columns = all_features.iloc[:, 1:].columns, index = all_features.index)
-    all_features_scaled['FEATURE'] = all_features['FEATURE']
-    all_features_mean = pd.DataFrame(np.mean(all_features_scaled, axis = 1))
-    all_features_mean.columns = ['SCORE_MEAN']
-    all_features_mean['FEATURE'] = all_features['FEATURE']
-    all_features_mean = all_features_mean.loc[all_features_mean['SCORE_MEAN'] > 0]
-    all_features_mean = all_features_mean.loc[all_features_mean['SCORE_MEAN'] >= all_features_mean['SCORE_MEAN'].quantile(0.2)]
-    all_features_mean = all_features_mean.dropna().sort_values(by = ['SCORE_MEAN'], ascending = False)
-    
-    X_train = X_train.loc[:, all_features_mean['FEATURE']]
-    
-    corr = pd.DataFrame(spearmanr(X_train).correlation).fillna(0)
-    corr_linkage = hierarchy.ward(corr)
-    cluster_ids = hierarchy.fcluster(corr_linkage, 1, criterion='distance')
-    cluster_id_to_feature_ids = defaultdict(list)
-    for idx, cluster_id in enumerate(cluster_ids):
-        cluster_id_to_feature_ids[cluster_id].append(idx)
-    selected_features = [v[0] for v in cluster_id_to_feature_ids.values()]
-    
-    X_train = X_train.iloc[:, selected_features]
-    
-    return X_train.columns.to_list()
+                if i == 0:
+                    df_fscore_xgb = df_fscore_xgb_list.copy()
+                else:
+                    df_fscore_xgb = df_fscore_xgb.append(df_fscore_xgb_list, ignore_index = True)
+
+                global_shap_values_train = pd.DataFrame(shap_explainer.shap_values(X_train))
+                global_shap_values_train = pd.DataFrame(global_shap_values_train.abs().mean(axis=0))
+                global_shap_values_train.columns = ['SHAP_MEAN']
+                global_shap_values_train['index'] = global_shap_values_train.index.astype(int)
+                global_shap_values_train = global_shap_values_train.merge(features_train, left_on='index', right_on='index')
+                del global_shap_values_train['index']
+                global_shap_values_train['Y_VALUE'] = col
+
+                global_shap_values_train = global_shap_values_train.sort_values(by=['SHAP_MEAN'], ascending=False)
+                global_shap_values_train.index = global_shap_values_train['FEATURE']
+                if i == 0:
+                        df_shap_mean = global_shap_values_train.copy()
+
+                else:
+                        df_shap_mean = df_shap_mean.append(global_shap_values_train, ignore_index = True)
+                i = i+1
+                #print(col)
+
+        df_shap_mean['SHAP_MEAN_ABS'] = abs(df_shap_mean['SHAP_MEAN'])
+        df_fscore_xgb['FSCORE_GAIN_XGB_ABS'] = abs(df_fscore_xgb['FSCORE_GAIN_XGB'])
+        df_shap_mean.index.name = 'index'
+        df_shap_mean2 = df_shap_mean[['SHAP_MEAN_ABS','FEATURE']].groupby('FEATURE').mean().reset_index()
+        df_fscore_xgb.index.name = 'index'
+        df_fscore_xgb2 = df_fscore_xgb[['FSCORE_GAIN_XGB_ABS','FEATURE']].groupby('FEATURE').mean().reset_index()
+
+        df_shap_mean = pd.DataFrame(df_shap_mean2.sort_values(by = ['SHAP_MEAN_ABS'], ascending = False))
+        df_shap_mean = df_shap_mean.loc[df_shap_mean['SHAP_MEAN_ABS'] >= df_shap_mean['SHAP_MEAN_ABS'].quantile(0.45)]
+        df_fscore_xgb = pd.DataFrame(df_fscore_xgb2.sort_values(by = ['FSCORE_GAIN_XGB_ABS'], ascending = False))
+        df_fscore_xgb = df_fscore_xgb.loc[df_fscore_xgb['FSCORE_GAIN_XGB_ABS'] >= df_fscore_xgb['FSCORE_GAIN_XGB_ABS'].quantile(0.45)]
+
+
+        #Multicolinearity
+        corr = pd.DataFrame(spearmanr(X_train).correlation).fillna(0)
+        corr_linkage = hierarchy.ward(corr)
+        cluster_ids = hierarchy.fcluster(corr_linkage, 1, criterion='distance')
+        cluster_id_to_feature_ids = defaultdict(list)
+        for idx, cluster_id in enumerate(cluster_ids):
+            cluster_id_to_feature_ids[cluster_id].append(idx)
+        selected_features = [v[0] for v in cluster_id_to_feature_ids.values()]
+
+            #selected_features = X_train.columns.to_list()
+        for i in range(len(y_train.columns)):
+                #print(str(i+1) + ' / ' + str(len(y_train.columns)) + '...')
+                model = Lasso(alpha=0.001, max_iter=25000)
+                model.fit(X_train.iloc[:, selected_features], y_train.iloc[:, i])
+
+                result = permutation_importance(model, X_train.iloc[:, selected_features], y_train.iloc[:, i], n_repeats=8,
+                                                random_state=0)
+                perm_sorted_idx = result.importances_mean.argsort()
+                perm_df = pd.DataFrame(result.importances[perm_sorted_idx])
+                perm_df['FEATURE'] = X_train.iloc[:, selected_features].iloc[:, perm_sorted_idx].columns.values
+
+                if i == 0:
+                    perm_df_score = perm_df[['FEATURE']]
+                    perm_df_score['PERM_SCORE'] = perm_df.iloc[:, 2]
+                else:
+                    perm_df_score2 = perm_df[['FEATURE']]
+                    perm_df_score2['PERM_SCORE'] = perm_df.iloc[:, 2]
+
+                    perm_df_score = pd.concat([perm_df_score, perm_df_score2], axis = 0, ignore_index = True)
+
+        perm_df_score = pd.DataFrame(perm_df_score.groupby(['FEATURE']).mean().reset_index() ).sort_values(by = ['PERM_SCORE'], ascending = False)
+        perm_df_score = perm_df_score.loc[perm_df_score['PERM_SCORE'] >= perm_df_score['PERM_SCORE'].quantile(0.45)]
+
+        all_features = pd.DataFrame(X_train.columns)
+        all_features.columns = ['FEATURE']
+
+        all_features = pd.merge(all_features, perm_df_score, how = 'left', left_on = ['FEATURE'], right_on = ['FEATURE'])
+        all_features = pd.merge(all_features, df_shap_mean, how = 'left', left_on = ['FEATURE'], right_on = ['FEATURE'])
+        all_features = pd.merge(all_features, df_fscore_xgb, how = 'left', left_on = ['FEATURE'], right_on = ['FEATURE'])
+
+        scaler = MinMaxScaler(feature_range=(0,100))
+        all_features_scaled = pd.DataFrame(scaler.fit_transform(all_features.iloc[:, 1:]), columns = all_features.iloc[:, 1:].columns, index = all_features.index)
+        all_features_scaled['FEATURE'] = all_features['FEATURE']
+        all_features_mean = pd.DataFrame(np.mean(all_features_scaled, axis = 1))
+        all_features_mean.columns = ['SCORE_MEAN']
+        all_features_mean['FEATURE'] = all_features['FEATURE']
+        all_features_mean = all_features_mean.loc[all_features_mean['SCORE_MEAN'] > 0]
+        all_features_mean = all_features_mean.loc[all_features_mean['SCORE_MEAN'] >= all_features_mean['SCORE_MEAN'].quantile(0.2)]
+        all_features_mean = all_features_mean.dropna().sort_values(by = ['SCORE_MEAN'], ascending = False)
+
+        X_train = X_train.loc[:, all_features_mean['FEATURE']]
+
+        corr = pd.DataFrame(spearmanr(X_train).correlation).fillna(0)
+        corr_linkage = hierarchy.ward(corr)
+        cluster_ids = hierarchy.fcluster(corr_linkage, 1, criterion='distance')
+        cluster_id_to_feature_ids = defaultdict(list)
+        for idx, cluster_id in enumerate(cluster_ids):
+            cluster_id_to_feature_ids[cluster_id].append(idx)
+        selected_features = [v[0] for v in cluster_id_to_feature_ids.values()]
+
+        X_train = X_train.iloc[:, selected_features]
+
+        return X_train.columns.to_list()
 
 
 
@@ -442,13 +451,13 @@ class DataPreparator:
             drop_constant_columns = True,
             drop_outliers = True,
             categorical_encoding = True,
-            
+
             encoding_strategy = 'dummy',
             outliers_strategy = 'IQR',
             outliers_cutoff = 3,
             outliers_contamination = 0.01,
             copy=True):
-        
+
         self.copy = copy
         self.transformed_ = None
         self.scaler_ = None
@@ -458,7 +467,7 @@ class DataPreparator:
         self.replace_null_ = replace_null
         self.categorical_encoding_ = categorical_encoding
         self.encoding_strategy_ = encoding_strategy
-        
+
         self.drop_duplicate_columns_ = drop_duplicate_columns
         self.drop_duplicate_rows_  = drop_duplicate_rows
         self.drop_constant_columns_  = drop_constant_columns
@@ -466,7 +475,7 @@ class DataPreparator:
         self.outliers_strategy_  = outliers_strategy
         self.outliers_cutoff_  = outliers_cutoff
         self.outliers_contamination_  = outliers_contamination
-        
+
         return
         
     
@@ -638,49 +647,40 @@ class DataPreparator:
     
     def transform(self, X_test, y_test):   
         
-        colnames_categorical = get_categorical_cols(X_test)
-        
-        if self.replace_null_ == True:
-            X_test = replace_nulls(X_test)
-        else:
-            pass
-        
-        if self.categorical_encoding_ == True:
+            colnames_categorical = get_categorical_cols(X_test)
+
+            if self.replace_null_ == True:
+                    X_test = replace_nulls(X_test)
+            if self.categorical_encoding_ != True:
+                    return X_test, y_test
+
             if self.encoding_strategy_ == 'None':
-                return X_test
+                    return X_test
             elif self.encoding_strategy_ == 'dummy':
                 X_test = pd.get_dummies(X_test, 
                                      prefix_sep='_', 
                                      columns=colnames_categorical, 
                                      drop_first=True)
                 uint_cols = X_test.select_dtypes(include='uint8').columns.tolist()
-        
+
                 for col in uint_cols:
                     X_test[col] = X_test[col].astype(int)
-            
+
             elif self.encoder_ != None:
                 encoded = pd.DataFrame(self.encoder_.transform(X_test[colnames_categorical]))
             #encoded_cat_test.columns = list(colnames_categorical)
                 for col in encoded.columns.to_list():
                     X_test[col] = encoded[col]
-                    
-            else:
-                pass
-            
-            
-        
-        else:
-            return X_test, y_test
-        
-        X_test = X_test.loc[:, X_test.columns.isin(self.all_columns_)]
-        
-        to_delete_cols = X_test.loc[:, ~X_test.columns.isin(self.all_columns_)].columns.to_list()
-        
-        if len(to_delete_cols) > 0:
-            for col in to_delete_cols:
-                del X_test[col]
-                
-        return X_test
+
+            X_test = X_test.loc[:, X_test.columns.isin(self.all_columns_)]
+
+            to_delete_cols = X_test.loc[:, ~X_test.columns.isin(self.all_columns_)].columns.to_list()
+
+            if len(to_delete_cols) > 0:
+                for col in to_delete_cols:
+                    del X_test[col]
+
+            return X_test
 
 
 
@@ -695,7 +695,7 @@ class FeatureSelectorRegressor:
         self.transformed_ = None
         #self.scaler_ = None
         self.X_ = None
-        
+
         self.selection_strategy_ = selection_strategy
         self.quantile_cutoff_ = quantile_cutoff
         self.alpha_ = alpha

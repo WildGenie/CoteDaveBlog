@@ -46,11 +46,8 @@ class RuleCondition():
         return self.__str__()
 
     def __str__(self):
-        if self.feature_name:
-            feature = self.feature_name
-        else:
-            feature = self.feature_index
-        return "%s %s %s" % (feature, self.operator, self.threshold)
+        feature = self.feature_name or self.feature_index
+        return f"{feature} {self.operator} {self.threshold}"
 
     def transform(self, X):
         """Transform dataset.
@@ -112,11 +109,7 @@ class FriedScale():
         
     def train(self,X):
         # get multipliers
-        if self.winsorizer != None:
-            X_trimmed= self.winsorizer.trim(X)
-        else:
-            X_trimmed = X
-
+        X_trimmed = self.winsorizer.trim(X) if self.winsorizer != None else X
         scale_multipliers=np.ones(X.shape[1])
         for i_col in np.arange(X.shape[1]):
             num_uniq_vals=len(np.unique(X[:,i_col]))
@@ -125,10 +118,11 @@ class FriedScale():
         self.scale_multipliers=scale_multipliers
         
     def scale(self,X):
-        if self.winsorizer != None:
-            return self.winsorizer.trim(X)*self.scale_multipliers
-        else:
+        if self.winsorizer is None:
             return X*self.scale_multipliers
+
+        else:
+            return self.winsorizer.trim(X)*self.scale_multipliers
         
 
 class Rule():
@@ -139,7 +133,7 @@ class Rule():
     def __init__(self,
                  rule_conditions,prediction_value):
         self.conditions = set(rule_conditions)
-        self.support = min([x.support for x in rule_conditions])
+        self.support = min(x.support for x in rule_conditions)
         self.prediction_value=prediction_value
         self.rule_direction=None
     def transform(self, X):
@@ -163,7 +157,7 @@ class Rule():
         return self.__str__()
 
     def __hash__(self):
-        return sum([condition.__hash__() for condition in self.conditions])
+        return sum(condition.__hash__() for condition in self.conditions)
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
@@ -175,15 +169,12 @@ def extract_rules_from_tree(tree, feature_names=None):
     rules = set()
 
     def traverse_nodes(node_id=0,
-                       operator=None,
-                       threshold=None,
-                       feature=None,
-                       conditions=[]):
+                           operator=None,
+                           threshold=None,
+                           feature=None,
+                           conditions=[]):
         if node_id != 0:
-            if feature_names is not None:
-                feature_name = feature_names[feature]
-            else:
-                feature_name = feature
+            feature_name = feature_names[feature] if feature_names is not None else feature
             rule_condition = RuleCondition(feature_index=feature,
                                            threshold=threshold,
                                            operator=operator,
@@ -196,22 +187,20 @@ def extract_rules_from_tree(tree, feature_names=None):
         if tree.children_left[node_id] != tree.children_right[node_id]: 
             feature = tree.feature[node_id]
             threshold = tree.threshold[node_id]
-            
+
             left_node_id = tree.children_left[node_id]
             traverse_nodes(left_node_id, "<=", threshold, feature, new_conditions)
-            
+
             right_node_id = tree.children_right[node_id]
             traverse_nodes(right_node_id, ">", threshold, feature, new_conditions)
         else: # a leaf node
             if len(new_conditions)>0:
                 new_rule = Rule(new_conditions,tree.value[node_id][0][0])
                 rules.update([new_rule])
-            else:
-                pass #tree only has a root node!
             return None
 
     traverse_nodes()
-    
+
     return rules
 
 
@@ -273,14 +262,13 @@ class RuleEnsemble():
         X_transformed: array-like matrix, shape=(n_samples, n_out)
             Transformed dataset. Each column represents one rule.
         """
-        rule_list=list(self.rules) 
-        if   coefs is None :
+        rule_list=list(self.rules)
+        if coefs is None:
             return np.array([rule.transform(X) for rule in rule_list]).T
-        else: # else use the coefs to filter the rules we bother to interpret
-            res= np.array([rule_list[i_rule].transform(X) for i_rule in np.arange(len(rule_list)) if coefs[i_rule]!=0]).T
-            res_=np.zeros([X.shape[0],len(rule_list)])
-            res_[:,coefs!=0]=res
-            return res_
+        res= np.array([rule_list[i_rule].transform(X) for i_rule in np.arange(len(rule_list)) if coefs[i_rule]!=0]).T
+        res_=np.zeros([X.shape[0],len(rule_list)])
+        res_[:,coefs!=0]=res
+        return res_
     def __str__(self):
         return (map(lambda x: x.__str__(), self.rules)).__str__()
 
