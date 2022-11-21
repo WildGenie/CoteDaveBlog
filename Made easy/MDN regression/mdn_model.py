@@ -35,25 +35,25 @@ def sample_from_mixture_f(x, pred_weights, pred_means, pred_std, dist):
           to_choose_from = np.arange(n_mix)
           for j, (weights, means, std_devs) in enumerate(
                   zip(pred_weights, pred_means, pred_std)):
-            index = np.random.choice(to_choose_from, p=weights)
-            if dist.lower() == 'normal':
-                samples[j, 0] = np.random.normal(means[index], std_devs[index], size=1)
-            elif (dist.lower() == 'laplace' or dist.lower() == 'laplacian') == True:
-                samples[j, 0] = np.random.laplace(means[index], std_devs[index], size=1)
-            #samples[j, 0] = x[j]
-            if j == amount - 1:
-              break
+                    index = np.random.choice(to_choose_from, p=weights)
+                    if dist.lower() == 'normal':
+                              samples[j, 0] = np.random.normal(means[index], std_devs[index], size=1)
+                    elif dist.lower() in ['laplace', 'laplacian']:
+                              samples[j, 0] = np.random.laplace(means[index], std_devs[index], size=1)
+                    #samples[j, 0] = x[j]
+                    if j == amount - 1:
+                      break
           return samples
 
 def listToString(s):  
-            # traverse in the string  
-            liste = []
-            for ele in s:  
-                ele = str(ele)
-                ele = 'X' + ele
-                liste.append(ele)
-            # return string   
-            return liste
+          # traverse in the string  
+          liste = []
+          for ele in s:  
+                    ele = str(ele)
+                    ele = f'X{ele}'
+                    liste.append(ele)
+          # return string   
+          return liste
         
 class MDN:
     def __init__(self, n_mixtures = -1, 

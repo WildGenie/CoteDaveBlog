@@ -137,34 +137,43 @@ class RdR_scorer:
     def get_rdr_interpretation(self):
         if self._rdr > 0 and self._fa_mean >= 0.75:
             qual = 'GOOD PERFORMANCE'
-        elif self._rdr > 0 and self._fa_mean < 0.75:
+        elif self._rdr > 0:
             qual = 'AVERAGE PERFORMANCE'
         elif self._rdr < 0:
             qual = 'BAD PEFORMANCE'
-        else:
-            pass
-        
         if self._rdr > 0 :
             trust = 'better'
         elif self._rdr == 0:
             trust = '(equal)'
         else:
             trust = 'worst'
-            
-        texte = qual + ': ' + 'With a stable trend and no major unpredictable changes, the model is ' + str(round((self._rdr * 100), 2)) + '% ' + trust + ' than a naïve random decision. The mean forecast accuracy is ' + str(round(self._fa_mean * 100,2)) + '% (around ' + str(round(self._fa_min * 100,2)) + '% and ' + str(round(self._fa_max * 100,2)) + '% of accuracy per forecasted datapoint)'
-        
-        return texte
+
+        return (
+            qual
+            + ': '
+            + 'With a stable trend and no major unpredictable changes, the model is '
+            + str(round((self._rdr * 100), 2))
+            + '% '
+            + trust
+            + ' than a naïve random decision. The mean forecast accuracy is '
+            + str(round(self._fa_mean * 100, 2))
+            + '% (around '
+            + str(round(self._fa_min * 100, 2))
+            + '% and '
+            + str(round(self._fa_max * 100, 2))
+            + '% of accuracy per forecasted datapoint)'
+        )
     
     def plot_rdr_rank(self, models = list([])):
         if len(models) == 0:
             models = self._def_viz
-            
+
         models = models.append(pd.DataFrame([[0,0,1.0,'Perfect Score']], index = [max(models.index)+1], columns = models.columns))
-        
+
         model_ranking = models.sort_values(by = 'RdR_SCORE', ascending = True)
         model_ranking['RdR_SCORE'] = model_ranking['RdR_SCORE'] * 100
         #model_ranking = model_ranking.loc[~model_ranking['MODEL_NAME'].isin(['PERFECT_SCORE', 'WORST_SCORE'])]
-         
+
         colors = []
         for value in model_ranking.loc[:, 'RdR_SCORE']: # keys are the names of the boys
             if value < 0:
@@ -173,7 +182,7 @@ class RdR_scorer:
                 colors.append('y')
             else:
                 colors.append('g')
-        
+
         fig, ax = plt.subplots()
         fig.set_size_inches(8, 10, forward=True)
         ax.barh(model_ranking['MODEL_NAME'], model_ranking['RdR_SCORE'], color = colors, alpha = 0.65)
@@ -182,17 +191,20 @@ class RdR_scorer:
         #for i in enumerate('RMSE:' + model_ranking['LB_RMSE'].round(4).astype(str)):
         #    plt.text(i + 0, str(v), fontweight='bold')
         # find the values and append to list
-        totals = []
-        for i in ax.patches:
-            totals.append(i.get_width())
+        totals = [i.get_width() for i in ax.patches]
         # set individual bar lables using above list
         #total = sum(totals)
         for i in ax.patches:
             # get_width pulls left or right; get_y pushes up or down
-            ax.text(i.get_width(), i.get_y()+.38, \
-                    str(round(i.get_width(), 2)) + '%', fontsize=12,
-        color='black',weight="bold"
-        )
+            ax.text(
+                i.get_width(),
+                i.get_y() + 0.38,
+                f'{str(round(i.get_width(), 2))}%',
+                fontsize=12,
+                color='black',
+                weight="bold",
+            )
+
         plt.title('Model Ranking based on RdR score' + '\n' 
                   + 'Best possible model = 100%' + '\n' 
                   + '0% = Naïve RandomWalk' + '\n' 
@@ -207,7 +219,7 @@ class RdR_scorer:
         ################### PLOT MODEL VALIDATION GRAPH GRID ########################################
         #############################################################################################
         models = models.append(pd.DataFrame([[0,0,1.0,'Perfect Score']], index = [max(models.index)+1], columns = models.columns))
-        
+
         import matplotlib.patches as mpatches
         #rectangle = [(0,0),(0,1),(1,1),(1,0)]
         fig1 = plt.figure(figsize = (18, 9))
@@ -218,17 +230,17 @@ class RdR_scorer:
         ax3 = fig1.add_subplot(111, aspect='equal')
         ax3.add_patch(mpatches.Rectangle((self._rw_df['DTW'].values[0], 0), np.max(self._def_viz['DTW']) * 1.15, self._rw_df['RMSE'].values[0], alpha = 0.07, color = 'red', edgecolor = None, linewidth = 0))
         plt.scatter(self._rw_df['DTW'], self._rw_df['RMSE'],s = 80, label = 'Naïve Random Walk Score', color = 'red')
-        
-        for i in range(0, len(models)):
+
+        for i in range(len(models)):
             model = pd.DataFrame(models.iloc[i:i+1, :])
             #print(model)
             #print(model.columns.tolist())
-            if ((model['DTW'].values[0] >= self._rw_df['DTW'].values[0]) or (model['RMSE'].values[0] >= self._rw_df['RMSE'].values[0])) == True:
+            if ((model['DTW'].values[0] >= self._rw_df['DTW'].values[0]) or (model['RMSE'].values[0] >= self._rw_df['RMSE'].values[0])):
                 plt.scatter(model['DTW'], model['RMSE'], color = 'red', s = 80, label = model['MODEL_NAME'])
             else:
                 plt.scatter(model['DTW'], model['RMSE'], color = 'green', s = 80, label = model['MODEL_NAME'])
             plt.annotate(model['MODEL_NAME'][i], (model['DTW'][i], model['RMSE'][i]))
-            
+
         plt.ylim(-0.1, np.max(self._def_viz['RMSE']) * 1.15)
         plt.xlim(-0.1, np.max(self._def_viz['DTW']) * 1.15)
         plt.xlabel('Dynamic Time Warping Distance' + '\n' + '(Metric for time series shape similarity, prediction vs test set)', fontsize = 15)

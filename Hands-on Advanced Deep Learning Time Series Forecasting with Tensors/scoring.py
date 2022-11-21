@@ -76,37 +76,40 @@ def POCID(y_true, y_pred):
     y_pred = np.array(y_pred).astype(float)
     """Prediction on change of direction"""
     nobs = len(y_pred)
-    pocid = (100 * (100 * np.mean((np.diff(y_true[-nobs:].ravel()) * np.diff(y_pred.ravel())) > 0)  )) / 75
-    return pocid
+    return (
+        100
+        * (
+            100
+            * np.mean(
+                (np.diff(y_true[-nobs:].ravel()) * np.diff(y_pred.ravel())) > 0
+            )
+        )
+    ) / 75
 
 
-def jensen_shannon_distance(y_true, y_pred): 
+def jensen_shannon_distance(y_true, y_pred):
     """ 
     method to compute the Jenson-Shannon Distance  
     between two probability distributions 
     """ 
 
     # convert the vectors into numpy arrays in case that they aren't 
-    p = np.array(y_true) 
+    p = np.array(y_true)
     q = np.array(y_pred) 
-     
+
     # calculate m 
     m = (p + q) / 2 
-     
+
     # compute Jensen Shannon Divergence 
     divergence = (ss.entropy(p, m) + ss.entropy(q, m)) / 2 
-     
-    # compute the Jensen Shannon Distance 
-    distance = np.sqrt(divergence) 
-     
-    return distance 
+
+    return np.sqrt(divergence) 
 
 def MAE(y_true, y_pred):
     y_true = np.array(y_true).astype(float)
     y_pred = np.array(y_pred).astype(float)
     y_error = abs(y_pred - y_true)
-    mae = y_error.mean()
-    return mae
+    return y_error.mean()
 
 # MFE is the difference between observed and forecasted value
 def MFE(y_true, y_pred):
@@ -116,29 +119,25 @@ def MAPE(y_true, y_pred):
     y_true = np.array(y_true).astype(float)
     y_pred = np.array(y_pred).astype(float)
     y_p_error = (abs(y_pred - y_true) / y_true) * 100
-    mape = y_p_error.mean()
-    return mape
+    return y_p_error.mean()
 
 def SMAPE(y_true, y_pred):
     y_true = np.array(y_true).astype(float)
     y_pred = np.array(y_pred).astype(float)
-    smape = np.mean(np.abs((y_true - y_pred) / ((y_true + y_pred)/2))) * 100
-    return smape
+    return np.mean(np.abs((y_true - y_pred) / ((y_true + y_pred)/2))) * 100
 
 def FA_MAPE(y_true, y_pred):
     y_true = np.array(y_true).astype(float)
     y_pred = np.array(y_pred).astype(float)
     y_p_error = (abs(y_pred - y_true) / y_true) * 100
     mape = y_p_error.mean()
-    FA = 100 - mape
-    return FA
+    return 100 - mape
 
 def MSE(y_true, y_pred):
     y_true = np.array(y_true).astype(float)
     y_pred = np.array(y_pred).astype(float)
     y_error = (y_pred - y_true) * (y_pred - y_true)
-    mse = y_error.mean()
-    return mse
+    return y_error.mean()
 
 def NMSE(y_true, y_pred):
     mse = MSE(y_true, y_pred)
@@ -150,8 +149,7 @@ def RMSE(y_true, y_pred):
     y_pred = np.array(y_pred).astype(float)
     y_error = (y_pred - y_true) * (y_pred - y_true)
     mse = y_error.mean()
-    rmse = np.sqrt(mse)
-    return rmse
+    return np.sqrt(mse)
 
 def RMSPE(y_true, y_pred):
     y_true = np.array(y_true).astype(float)
@@ -168,16 +166,13 @@ def U_THEIL(y_true, y_pred):
     y_pred = np.array(y_pred).astype(float)
     y_calc_num = y_true.copy().astype(float)
     y_calc_dem = y_true.copy().astype(float)
-    for row in range(0, len(y_true)):
-        if row == 0:
-            pass
-        else:
+    for row in range(len(y_true)):
+        if row != 0:
             y_calc_num[row] = np.square((y_pred[row] - y_true[row]) / y_true[row-1])
             y_calc_dem[row] = np.square((y_true[row] - y_true[row-1]) / y_true[row-1])
     y_calc_num = y_calc_num[1:]
     y_calc_dem = y_calc_dem[1:]
-    u_theil = np.sqrt(np.sum(y_calc_num) / np.sum(y_calc_dem))
-    return u_theil
+    return np.sqrt(np.sum(y_calc_num) / np.sum(y_calc_dem))
     
 
 def R2(y_true, y_pred):
@@ -194,8 +189,7 @@ def R2_ADJ(y_true, y_pred, n_vars = 1):
     sse = sum((y_true - y_pred)**2)
     tse = (len(y_true) - 1) * np.var(y_true, ddof=1)
     r2_score = 1 - (sse / tse)
-    r2_adj = 1-(1-r2_score[0])*(len(y_true)-1)/(len(y_true)-n_vars-1)
-    return r2_adj
+    return 1-(1-r2_score[0])*(len(y_true)-1)/(len(y_true)-n_vars-1)
 
 # This evaluation metric is used to over come some of the problems of MAPE and
 # is used to measure if the forecasting model is better than the naive model or
@@ -247,11 +241,6 @@ def AIC(y_true, y_pred, n_vars):
     Raise InputError if p < 0.
     """
 
-    # Package dependencies
-    #import numpy as np
-    #import pandas as pd
-
-    # User-defined exceptions
     class InputError(Exception):
         """
         Raised when there is any error from inputs that no base Python exceptions cover.
@@ -260,9 +249,8 @@ def AIC(y_true, y_pred, n_vars):
 
 ## Length condition: length of y and y_pred should be equal, and should be more than 1
     ### check if y and y_pred have equal length
-    if not len(y_true) == len(y_pred):
+    if len(y_true) != len(y_pred):
         raise InputError("Expect equal length of y and y_pred")
-    ### check if y and y_pred length is larger than 1
     elif len(y_true) <= 1 or len(y_pred) <= 1:
         raise InputError("Expect length of y and y_pred to be larger than 1")
     else:
@@ -272,7 +260,7 @@ def AIC(y_true, y_pred, n_vars):
     resid = np.subtract(y_pred, y_true)
     rss = np.sum(np.power(resid, 2))
     aic_score = n*np.log(rss/n) + 2*n_vars
-    
+
     if np.isinf(aic_score):
         aic_score = 0
 
@@ -306,9 +294,9 @@ def BIC(y_true, y_pred, n_vars):
     #import numpy as np
     #import pandas as pd
     #import collections
-    
+
 # Length exception
-    if not len(y_true) == len(y_pred):
+    if len(y_true) != len(y_pred):
         raise TypeError("Equal length of observed and predicted values expected.")
     else:
         n = len(y_true)
@@ -318,10 +306,10 @@ def BIC(y_true, y_pred, n_vars):
     residual = np.subtract(y_pred, y_true)
     SSE = np.sum(np.power(residual, 2))
     BIC = n*np.log(SSE/n) + n_vars*np.log(n)
-    
+
     if np.isinf(BIC):
         BIC = 0
-        
+
     return BIC
 
 
@@ -405,7 +393,7 @@ def replace_erronous_values(pred_ci):
 #n_vars = 1
 def all_metrics(y_true, y_pred, y_train, n_vars):
     #y_pred = y_pred.fillna(0)
-    
+
     y_true_clipped = pd.DataFrame(clip_zeros(y_true))
     y_true_clipped.columns = list(y_true.columns)
     y_true_clipped.index = y_true.index
@@ -419,31 +407,31 @@ def all_metrics(y_true, y_pred, y_train, n_vars):
     errors_df['LB_JENSEN_SHANNON_DIST'] = jensen_shannon_distance(y_true, y_pred)[0]
     errors_df['LB_MAE'] = MAE(y_true, y_pred)
     errors_df['N0_MFE'] = MFE(y_true.values, y_pred.values)
-    
+
     errors_df['LB_MAPE'] = MAPE(y_true, y_pred)
     errors_df['LB_SMAPE'] = SMAPE(y_true, y_pred)
     errors_df['HB_FA_MAPE'] = FA_MAPE(y_true, y_pred)
-    
+
     errors_df['LB_MAX_ERROR'] = abs(np.max(y_pred.values - y_true.values))
     errors_df['LB_MSE'] = MSE(y_true, y_pred)
     errors_df['LB_NMSE'] = NMSE(y_true, y_pred)[0]
     errors_df['LB_RMSE'] = RMSE(y_true, y_pred)
     errors_df['LB_RMSPE'] = RMSPE(y_true, y_pred)
     errors_df['HB_FA_RMSPE'] = FA_RMSPE(y_true, y_pred)
-    
+
     errors_df['LB_U_THEIL'] = U_THEIL(y_true, y_pred)
-    
+
     errors_df['HB_R2'] = R2(y_true.values, y_pred.values)
     errors_df['HB_R2_ADJ'] = R2_ADJ(y_true.values, y_pred.values, n_vars = n_vars)
     #pred_ci_econom['HB_R2_ADJ'] = np.where(pred_ci_econom['HB_R2_ADJ'].isna() == True, pred_ci_econom['HB_R2'], pred_ci_econom['HB_R2_ADJ'])
     errors_df['HB_R2_ADJ'] = np.where(errors_df['HB_R2_ADJ'].isna() == True, errors_df['HB_R2'], errors_df['HB_R2_ADJ'])
     errors_df['HB_R2_ADJ'] = np.where(errors_df['HB_R2_ADJ'] == np.inf, errors_df['HB_R2'], errors_df['HB_R2_ADJ'])
     errors_df['HB_R2_ADJ'] = np.where(errors_df['HB_R2_ADJ'] == -np.inf, errors_df['HB_R2'], errors_df['HB_R2_ADJ'])
-   
-    
+
+
     errors_df['LB_MASE_LAST'] = MASE_LAST(y_true.values, y_pred.values, y_train)
     errors_df['LB_MASE_AVG'] = MASE_AVG(y_true.values, y_pred.values, y_train)
-    
+
     if len(y_true) == 1:
         y_true2 = np.concatenate((y_true, y_true), axis = 0)
         y_pred2 = np.concatenate((y_pred, y_pred), axis = 0)
@@ -452,20 +440,20 @@ def all_metrics(y_true, y_pred, y_train, n_vars):
     else:
         errors_df['LB_AIC'] = AIC(y_true, y_pred, n_vars)
         errors_df['LB_BIC'] = BIC(y_true, y_pred, n_vars)
-    
+
     errors_df['LB_DTW_DIST'] = dtw.distance(y_true.values, y_pred.values)
-    
+
     for dist in ['euclidean', 'chebyshev',  'hamming', 'jaccard', 'mahalanobis', 'minkowski']:   
         d2, c2, acc2, p2 = accelerated_dtw(y_true, y_pred, dist)
         errors_df['LB_DTW_' + dist.upper()] = d2
-    
+
     errors_df = errors_df.reindex(sorted(errors_df.columns), axis=1)
-    
+
     errors_df.index = y_true.index
-    
+
     #errors_df.columns = [col.replace('LB_', '') for col in errors_df.columns]
     #errors_df.columns = [col.replace('HB_', '') for col in errors_df.columns]
-    
+
     return errors_df
 
 def rank_by_score(errors_df):
@@ -473,22 +461,22 @@ def rank_by_score(errors_df):
     #errors_df.to_csv('error_df.csv', sep = ';')
     lb_scores = errors_df[[col for col in errors_df if col.startswith('LB_')]]
     hb_scores = errors_df[[col for col in errors_df if col.startswith('HB_')]]
-    
+
     #errors_df = replace_erronous_values(errors_df)
-    
+
     #errors_df = errors_df.fillna(0.0000000000001)
-    
+
     scaler = MinMaxScaler(feature_range = (0, 100)) 
-    
+
     lb_scores = scaler.fit_transform(lb_scores).astype(float)
     lb_scores = 100 - lb_scores
-    
+
     hb_scores = scaler.fit_transform(hb_scores).astype(float)
-    
+
     global_scores = np.concatenate([lb_scores, hb_scores], axis = 1)
-    
-    
-    
+
+
+
     global_scores = np.mean(global_scores, axis = 1)    
     errors_df['GLOBAL_SCORE'] = global_scores
     #errors_df['GLOBAL_SCORE'] = np.where(errors_df['GLOBAL_SCORE'].isna() == True, errors_df['HB_FA_MAPE'], errors_df['GLOBAL_SCORE'])
@@ -496,7 +484,7 @@ def rank_by_score(errors_df):
     global_scores = global_scores - np.max(global_scores)
     errors_df['MODEL_RANK'] = rankdata(global_scores, method='min')
     errors_df['INDCT_BETTER_THAN_NAIVE'] = np.where(errors_df['LB_U_THEIL'] < 1, 1, 0)
-    
+
     errors_df = errors_df.sort_values(by = ['GLOBAL_SCORE'], ascending = False)
     return errors_df
 

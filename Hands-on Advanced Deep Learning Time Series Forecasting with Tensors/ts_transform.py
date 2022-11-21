@@ -146,13 +146,10 @@ class TransformerBoxCox():
             used for later scaling along the features axis.
         """
         #X = check_array(X, copy=self.copy, accept_sparse="csc",ensure_2d=False)
-        
+
         if self._translation != 0:
             X = X + self._translation
-            X = self.scaler_.transform(X)           
-        else:
-            X = self.scaler_.transform(X)      
-        
+        X = self.scaler_.transform(X)
         X = X.astype(float)
         return X
     
@@ -305,25 +302,25 @@ class TransformerDiff():
     
     def inverse_transform(self, X, copy=None):
         #check_is_fitted(self, 'transformed_')
-        
+
         if self.order < 1:
             return X
-        
+
         #X = X_diff
         #X = X[~np.isnan(X).any(axis=1)]
         X = X[~np.isnan(X)]
-        
+
         copy = copy if copy is not None else self.copy
         #X = check_array(X, copy=copy, accept_sparse="csc", ensure_2d=False)
-        
+
         X = X.astype(np.float)
-        
+
         try:
             X.shape[1]
         except:
             X = X.reshape(-1,1)
         #last_value[-3, 0]
-        
+
         if self.transformed_ is not None:
             i = 0
             #j = 0
@@ -331,7 +328,7 @@ class TransformerDiff():
             #col = 1
             for col in range(X.shape[1]):
                 #serie = pd.Series(X[:, col])
-                
+
                 if self.order == 1:
                     try:
                         self.last_value_[0, col]
@@ -340,28 +337,28 @@ class TransformerDiff():
                     X_first = np.array(self.last_value_[0, col]).reshape(-1,1)
                     undiff = np.array([]).reshape(-1,1)
                     undiff = np.concatenate((undiff, X_first), axis = 0)
-                    for j in range(0, len(X[:, col])):
+                    for j in range(len(X[:, col])):
                         undiff = np.concatenate((undiff, np.array(X[j, col] + undiff[j, 0]).reshape(-1, 1)), axis = 0)
                         #print(i,col,j)
                     if i == 0:
                         undiff_all = np.array(undiff)
                     else:
                         undiff_all = np.column_stack((undiff_all, np.array(undiff)))
-                        
+
                 elif self.order == 2:
                     X_first1 = np.array(self.last_value_[-1, col]).reshape(-1,1)
                     X_first2 = np.array(self.last_value_[-2, col]).reshape(-1,1)
                     undiff = np.array([]).reshape(-1,1)
                     undiff = np.concatenate((undiff, X_first2), axis = 0)
                     undiff = np.concatenate((undiff, X_first2 + X_first1), axis = 0)
-                    for j in range(0, len(X[:, col])):
+                    for j in range(len(X[:, col])):
                         undiff = np.concatenate((undiff, np.array(X[j, col] + (undiff[j+1, 0]-undiff[j, 0]) + undiff[j+1, 0]).reshape(-1, 1)), axis = 0)
                         #print(i,col,j)
                     if i == 0:
                         undiff_all = np.array(undiff)
                     else:
                         undiff_all = np.column_stack((undiff_all, np.array(undiff)))
-                        
+
                 elif self.order == 3:
                     X_first1 = np.array(self.last_value_[-1, col]).reshape(-1,1)
                     X_first2 = np.array(self.last_value_[-2, col]).reshape(-1,1)
@@ -370,22 +367,22 @@ class TransformerDiff():
                     undiff = np.concatenate((undiff, X_first3), axis = 0)
                     undiff = np.concatenate((undiff, X_first2 + X_first3), axis = 0)
                     undiff = np.concatenate((undiff, X_first3 + X_first2 + X_first2 + X_first1), axis = 0)
-                    for j in range(0, len(X[:, col])):
+                    for j in range(len(X[:, col])):
                         undiff = np.concatenate((undiff, np.array((X[j, col] + (undiff[j+2, 0] - undiff[j+1, 0]) - (undiff[j+1, 0] - undiff[j, 0]) ) + (undiff[j+2, 0] - undiff[j+1, 0]) + undiff[j+2, 0]).reshape(-1, 1)), axis = 0)
                         #print(i,col,j)
                     if i == 0:
                         undiff_all = np.array(undiff)
                     else:
                         undiff_all = np.column_stack((undiff_all, np.array(undiff)))
-                
-                i = i + 1           
+
+                i = i + 1
         return undiff_all
     
     def forecast_transform(self, y_pred, copy=None):
         #check_is_fitted(self, 'transformed_')        
-        
+
         copy = copy if copy is not None else self.copy
-        
+
         y_pred = y_pred.astype(np.float)
         #print(self.y_pred)
         #print(self.transformed_)
@@ -393,14 +390,14 @@ class TransformerDiff():
             y_pred.shape[1]
         except:
             y_pred = y_pred.reshape(-1, 1)
-            
+
         if self.transformed_ == True:
             #print(self.transformed_)
             i = 0
             for col in range(y_pred.shape[1]):
                 #print(col)
                 pred_first = y_pred[0, col]
-                for j in range(0, len(y_pred[:, col])):
+                for j in range(len(y_pred[:, col])):
                     #print(pred_first,col,j)
                     if col == 0:
                         if j == 0:
@@ -408,7 +405,7 @@ class TransformerDiff():
                                 self.pred_value_[:, col]
                             except:
                                 self.pred_value_ = self.pred_value_.reshape(-1, 1)
-                                
+
                             y_pred_undiff = np.array(np.sum(self.pred_value_[:, col]) + pred_first).reshape(-1,1)
                             #print(y_pred_undiff)
                         else:
@@ -417,25 +414,22 @@ class TransformerDiff():
                         y_pred_undiff_all = np.array(y_pred_undiff)
                     else:
                         if j == 0:
-                            
+
                             try:
                                 self.pred_value_[:, col]
                             except:
                                 self.pred_value_ = self.pred_value_.reshape(-1, 1)
-                                
-                        
+
+
                             y_pred_undiff = np.array(np.sum(self.pred_value_[:, col]) + pred_first).reshape(-1,1)
                         else:
                             y_pred_undiff = np.concatenate((y_pred_undiff, np.array(y_pred_undiff[j-1, 0] + y_pred[j, col]).reshape(-1,1) ), axis = 0)
-                        
-                        y_pred_undiff_all2 = np.array(y_pred_undiff)    
+
+                        y_pred_undiff_all2 = np.array(y_pred_undiff)
                         #y_pred_undiff_all = np.column_stack((y_pred_undiff_all, y_pred_undiff ))
                         if j == len(y_pred[:, col])-1:
                             y_pred_undiff_all = np.concatenate((y_pred_undiff_all, y_pred_undiff_all2 ), axis = 1)
-                        else:
-                            pass
-                
-                i = i + 1           
+                i = i + 1
         return y_pred_undiff_all
     
 class TransformerLogDiff:       
@@ -449,10 +443,7 @@ class TransformerLogDiff:
         self.last_value_ = None
         
     def fit_transform(self, X, y=None):
-        X_log = self.log_.fit_transform(X)
-        #X_logdiff = self.diff_.fit_transform(X_log)
-        
-        return X_log
+        return self.log_.fit_transform(X)
     
     def inverse_transform(self, X_logdiff, y=None):
         #X_log = self.diff_.inverse_transform(X_logdiff)
@@ -461,9 +452,6 @@ class TransformerLogDiff:
         return X_log
     
     def forecast_transform(self, y_pred):
-        #y_undiff = self.diff_.forecast_transform(y_pred)
-        y_undiff_unlog = self.log_.inverse_transform(y_pred)
-        
-        return y_undiff_unlog
+        return self.log_.inverse_transform(y_pred)
     
         

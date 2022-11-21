@@ -157,7 +157,7 @@ class KnnDTW(object):
 
             #p = progress_bar(np.shape(dm)[0])
 
-            for i in range(0, x_s[0] - 1):
+            for i in range(x_s[0] - 1):
                 for j in range(i + 1, x_s[0]):
                     dm[dm_count] = dtw_distance(x[i], y[j])
 
@@ -166,9 +166,6 @@ class KnnDTW(object):
 
             # Convert to squareform
             dm = squareform(dm)
-            return dm
-
-        # Compute full distance matrix of dtw distnces between x and y
         else:
             x_s = np.shape(x)
             y_s = np.shape(y)
@@ -177,14 +174,15 @@ class KnnDTW(object):
 
             #p = progress_bar(dm_size)
 
-            for i in range(0, x_s[0]):
-                for j in range(0, y_s[0]):
+            for i in range(x_s[0]):
+                for j in range(y_s[0]):
                     dm[i, j] = dtw_distance(x[i], y[j])
                     # Update progress bar
                     dm_count += 1
                     #p.update(dm_count)
 
-            return dm
+
+        return dm
 
     def predict(self, x):
         """Predict the class labels or probability estimates for
@@ -236,9 +234,7 @@ class KnnDTW(object):
         y = y.astype('int32')
         pred_labels = pred_labels.astype('int32')
 
-        # Compute accuracy measure
-        accuracy = accuracy_score(y, pred_labels)
-        return accuracy
+        return accuracy_score(y, pred_labels)
 
     def predict_proba(self, x):
         """Predict the class labels probability estimates for
@@ -267,7 +263,7 @@ class KnnDTW(object):
         class_dm = []
 
         # Partition distance matrix by class
-        for i, cls in enumerate(classes):
+        for cls in classes:
             idx = np.argwhere(self.y == cls)[:, 0]
             cls_dm = dm[:, idx]  # [N_test, N_train_c]
 
